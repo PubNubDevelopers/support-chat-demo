@@ -24,22 +24,31 @@ const SupportDashboard = () => {
   const [emojiShow, toggleEmojiShow] = React.useState(false);
   const divRef = useRef(null);
   const divRefActive = useRef(null);
+  const messageRef = useRef([]);
+  const activeChatNameRef = useRef('');
+  messageRef.current = messages;
+  activeChatNameRef.current = activeChatName;
  
   const sendMessage = useCallback(
     async message => {
+      console.log(activeChatChannel);
       if (input && activeChatChannel !== "") {
         await pubnub.publish({
-                message: {sender:"agent",name:'agent',message:input},
+                message: {sender:"agent",name:'agent',message:input.replace(/<[^>]*>?/gm, '')},
                 channel:activeChatChannel
               });
         setInput('');
-        setMessages([...messages, {sender:"agent",name:'agent',message:input}] as any);
+        setMessages([...messageRef.current, {sender:"agent",name:'agent',message:input.replace(/<[^>]*>?/gm, '')}] as any);
+        if (document.getElementById("activeUserLast-"+activeChatName)) {
+          document.getElementById("activeUserLast-"+activeChatName).innerHTML = input.substring(0,40);
+        }
         divRef.current.scrollIntoView({ behavior: 'smooth' });
       } else {
+        alert("You must first create and select a user to send messages.")
         setInput('');
       }
     },
-    [pubnub, setInput, input, activeChatChannel, messages]
+    [pubnub, setInput, input, activeChatChannel, activeChatName]
   );
 
   function openChat(clientName) {
@@ -59,9 +68,11 @@ const SupportDashboard = () => {
               for (var i = 0; i <= response.messages.length-1; i++) {
                 channelHistory.push(response.messages[i].entry);
               } 
+              setTimeout(() => {  updateActiveChats(); }, 500);
             }
           }
           setMessages(channelHistory);
+
           divRef.current.scrollIntoView({ behavior: 'smooth' });
         }
       );
@@ -72,28 +83,55 @@ const SupportDashboard = () => {
     return (uuid.charAt(0).toUpperCase()+uuid.charAt(5).toUpperCase()+uuid.charAt(9).toUpperCase()+uuid.charAt(0).toUpperCase())
   }
 
-  useEffect(() => {
-    function updateActiveChats(){
-      let newActiveUsers = [];
-      pubnub.hereNow(
-        {
-          channels: [supportChannel+"*"],
-          includeUUIDs: true,
-        },
-        (status, response) => {
-          if (response.channels["supportChannel.*"].occupancy > 0) {
-            for (var i = response.channels["supportChannel.*"].occupancy-1; i >= 0 ; i--) {
-              if (response.channels["supportChannel.*"].occupants[i].uuid !== "agent") {
-                newActiveUsers.push({uuid:response.channels["supportChannel.*"].occupants[i].uuid, account: accountFromUUID(response.channels["supportChannel.*"].occupants[i].uuid.replace(/\s/g, '')), initial: response.channels["supportChannel.*"].occupants[i].uuid.charAt(0).toUpperCase()});
-              }
+  function lastMessagePreview(uuid) {
+    pubnub.history(
+      {
+          channel: supportChannel+uuid.replace(/\s/g, ''),
+          count: 1
+      },
+      (status, response) => {
+        if (response) {
+          if (response.messages && response.messages.length > 0) {
+            if (document.getElementById("activeUserLast-"+uuid)) {
+              document.getElementById("activeUserLast-"+uuid).innerHTML = response.messages[0].entry.message.substring(0,40);
+            }
+          } 
+        }
+      }
+    );
+  }
+
+  function updateActiveChats(){
+    let newActiveUsers = [];
+    pubnub.hereNow(
+      {
+        channels: [supportChannel+"*"],
+        includeUUIDs: true,
+      },
+      (status, response) => {
+        if (response.channels["supportChannel.*"].occupancy > 0) {
+          for (var i = response.channels["supportChannel.*"].occupancy-1; i >= 0 ; i--) {
+            if (response.channels["supportChannel.*"].occupants[i].uuid !== "agent") {
+              let user = response.channels["supportChannel.*"].occupants[i];
+              lastMessagePreview(user.uuid);
+              newActiveUsers.push({uuid:user.uuid, account: accountFromUUID(user.uuid.replace(/\s/g, '')), initial: user.uuid.charAt(0).toUpperCase()});
             }
           }
-          setActiveChatTotal([response.channels["supportChannel.*"].occupancy-1] as any);
         }
-      )
+        if (response.channels["supportChannel.*"].occupancy-1 >= 0) {
+          setActiveChatTotal([response.channels["supportChannel.*"].occupancy-1] as any);
+        } else {
+          setActiveChatTotal([0] as any);
+        }
+      }
+    )
+    if (activeUsers !== newActiveUsers) {
       setActiveUsers(newActiveUsers);
-      divRefActive.current.scrollIntoView({ behavior: 'smooth' });
-    };
+    }
+    divRefActive.current.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  function startPubNub() {
     pubnub.addListener({
       status: function(statusEvent) {
         if (statusEvent.category === "PNConnectedCategory") {
@@ -101,21 +139,27 @@ const SupportDashboard = () => {
         }
       },
       message: messageEvent => {
-        if (messageEvent.message.name === activeChatName) {
-          setMessages([...messages, messageEvent.message] as any);
+        if (messageEvent.message.name === activeChatNameRef.current) {
+          setMessages([...messageRef.current, messageEvent.message] as any);
           divRef.current.scrollIntoView({ behavior: 'smooth' });
         }
+        if (document.getElementById("activeUserLast-"+messageEvent.message.name)) {
+          document.getElementById("activeUserLast-"+messageEvent.message.name).innerHTML = messageEvent.message.message.substring(0,40);
+        }
+
       },
       presence: function(presenceEvent) {
-        updateActiveChats();
+        if ((presenceEvent.action === "join") || (presenceEvent.action === "leave")) {
+          updateActiveChats();
+        }
       },
     });
     pubnub.subscribe({
         channels: [supportChannel+"*"],
         withPresence: true
     });
-
-  }, [messages, pubnub, divRef, activeChatName]);
+  };
+  useEffect(startPubNub, []);
 
   useEffect(() => {
     const listener = event => {
@@ -826,8 +870,7 @@ const SupportDashboard = () => {
                           <LastActiveMessageDuration>Active</LastActiveMessageDuration>
                         </ActiveSenderRow>
                         <ActiveChatAssignedRow>
-                          <ActiveAssignedText>
-                            Assigned to: Phil Byrne
+                          <ActiveAssignedText id={`activeUserLast-${activeUsers.uuid}`}>
                           </ActiveAssignedText>
                           <AssignedAgentAvatar>
                             <AssignedAgentAvaterImage
@@ -854,8 +897,7 @@ const SupportDashboard = () => {
                         <LastActiveMessageDuration>Active</LastActiveMessageDuration>
                       </ActiveSenderRow>
                       <ActiveChatAssignedRow>
-                        <ActiveAssignedText>
-                          Assigned to: Phil Byrne
+                        <ActiveAssignedText id={`activeUserLast-${activeUsers.uuid}`}>
                         </ActiveAssignedText>
                         <AssignedAgentAvatar>
                           <AssignedAgentAvaterImage
@@ -949,7 +991,7 @@ const SupportDashboard = () => {
                     <AgentTextAreaStackRow>
                       <AgentTextAreaStack>
                         <AgentMessageText>
-                          {message.message}
+                          {message.message.replace(/<[^>]*>?/gm, '')}
                         </AgentMessageText>
                       </AgentTextAreaStack>
                       <AgentAvatarMessage>
@@ -974,7 +1016,7 @@ const SupportDashboard = () => {
                       </UserIconStack>
                       <UserTextAreaStack>
                         <ActiveUserMessage>
-                          {message.message}
+                          {message.message.replace(/<[^>]*>?/gm, '')}
                         </ActiveUserMessage>
                       </UserTextAreaStack>
                     </UserMessageStackRow>
@@ -982,8 +1024,8 @@ const SupportDashboard = () => {
                 );
               }
             })}
-            </MessageList>
             <div ref={divRef} />
+            </MessageList>
           </MessageListStack>
           {emojiShow && <EmojiSelector>
             <Picker 
@@ -1045,7 +1087,7 @@ const SupportDashboard = () => {
                         ></path>
                       </svg>
                       <AddMarkdown>
-                        <Path7Stack>
+                        <PathMarkdownStack>
                           <svg
                             viewBox="0 0 13 15.44"
                             style={{
@@ -1186,10 +1228,10 @@ const SupportDashboard = () => {
                               d="M6.09 0.81 L0.41 0.81 C0.18 0.81 0.00 0.63 0.00 0.41 C0.00 0.18 0.18 0.00 0.41 0.00 L6.09 0.00 C6.32 0.00 6.50 0.18 6.50 0.41 C6.50 0.63 6.32 0.81 6.09 0.81 "
                             ></path>
                           </svg>
-                        </Path7Stack>
+                        </PathMarkdownStack>
                       </AddMarkdown>
                       <AddEmoji onClick={() => {toggleEmojiShow(!emojiShow)}}>
-                        <Path8Stack>
+                        <PathEmojiStack>
                           <svg
                             viewBox="0 0 16 16"
                             style={{
@@ -1207,7 +1249,7 @@ const SupportDashboard = () => {
                               fill="rgba(170,170,170,1)"
                               fillOpacity={1}
                               strokeOpacity={1}
-                              d="M15.16 8.00 C15.16 11.95 11.95 15.16 8.00 15.16 C4.05 15.16 0.84 11.95 0.84 8.00 C0.84 4.05 4.05 0.84 8.00 0.84 M13.66 13.66 C15.17 12.15 16.00 10.14 16.00 8.00 C16.00 5.86 15.17 3.86 13.66 2.34 C12.15 0.83 10.14 0.00 8.00 0.00 C5.86 0.00 3.85 0.83 2.34 2.34 C0.83 3.86 0.00 5.86 0.00 8.00 C0.00 10.14 0.83 12.15 2.34 13.66 C3.85 15.17 5.86 16.00 8.00 16.00 "
+                              d="M8,0.842105263 C4.05305263,0.842105263 0.842105263,4.05305263 0.842105263,8 C0.842105263,11.9477895 4.05305263,15.1578947 8,15.1578947 C11.9469474,15.1578947 15.1578947,11.9477895 15.1578947,8 C15.1578947,4.05305263 11.9469474,0.842105263 8,0.842105263 M8,16 C5.86273684,16 3.85431579,15.168 2.34273684,13.6572632 C0.831157895,12.1465263 0,10.1372632 0,8.00084211 C0,5.86357895 0.832,3.85515789 2.34273684,2.34357895 C3.85347368,0.832 5.86273684,0 8,0 C10.1372632,0 12.1456842,0.832 13.6572632,2.34357895 C15.1688421,3.85515789 16,5.86357895 16,8.00084211 C16,10.1381053 15.168,12.1465263 13.6572632,13.6572632 C12.1465263,15.168 10.1372632,16 8,16"
                             ></path>
                           </svg>
                           <svg
@@ -1250,7 +1292,7 @@ const SupportDashboard = () => {
                               d="M5.40 5.05 C4.10 5.05 2.84 4.59 1.85 3.74 C0.87 2.91 0.22 1.75 0.01 0.49 C-0.03 0.26 0.12 0.04 0.35 0.01 C0.58 -0.03 0.80 0.12 0.84 0.35 C1.21 2.59 3.13 4.21 5.40 4.21 C6.22 4.21 7.02 4.00 7.72 3.59 C7.92 3.47 8.18 3.54 8.29 3.74 C8.41 3.95 8.34 4.20 8.14 4.32 C7.31 4.80 6.37 5.05 5.40 5.05 Z"
                             ></path>
                           </svg>
-                        </Path8Stack>
+                        </PathEmojiStack>
                       </AddEmoji>
                       <AddCodeSnippet>
                         <Path10Stack>
@@ -1320,27 +1362,6 @@ const SupportDashboard = () => {
                   </EditToolbar>
                 </SendRow>
               </TextArea>
-              <svg
-                viewBox="-0.5 -0.5 618 3"
-                style={{
-                  position: "absolute",
-                  height: 3,
-                  width: 618,
-                  top: 50,
-                  left: 0,
-                  backgroundColor: "transparent",
-                  borderColor: "transparent"
-                }}
-              >
-                <path
-                  strokeWidth={1}
-                  fill="transparent"
-                  stroke="rgba(235,235,235,1)"
-                  fillOpacity={1}
-                  strokeOpacity={1}
-                  d="M0.49 0.50 L615.51 0.50 "
-                ></path>
-              </svg>
             </TextAreaStack>
           </MessageInput>
         </SelectedDirectChannel>
@@ -1350,31 +1371,10 @@ const SupportDashboard = () => {
               <Info>Visitor Information</Info>
               <PresenceStackRow>
                 <PresenceStack>
-                  <svg
-                    viewBox="-1 -1 13.1 13.1"
-                    style={{
-                      position: "absolute",
-                      height: 13,
-                      width: 13,
-                      top: 21,
-                      left: 23,
-                      backgroundColor: "transparent",
-                      borderColor: "transparent"
-                    }}
-                  >
-                    <path
-                      strokeWidth={2}
-                      fill="rgba(126,211,33,1)"
-                      stroke="rgba(255,255,255,1)"
-                      fillOpacity={1}
-                      strokeOpacity={1}
-                      d="M5.55 10.10 C8.07 10.10 10.10 8.07 10.10 5.55 C10.10 3.04 8.07 1.00 5.55 1.00 C3.04 1.00 1.00 3.04 1.00 5.55 C1.00 8.07 3.04 10.10 5.55 10.10 Z"
-                    ></path>
-                  </svg>
                   <UserAvatar>
                     <UserImage>
-                      {activeChatChannel 
-                      ? <UserInitial>{activeChatChannel.charAt(0).toUpperCase()}</UserInitial>
+                      {activeChatName 
+                      ? <UserInitial>{activeChatName.charAt(0).toUpperCase()}</UserInitial>
                       : <UserInitial>?</UserInitial>
                       }
                     </UserImage>
@@ -1899,10 +1899,9 @@ const App = () => {
 const Container = styled.div`
   display: flex;
   flex: 1;
-  background-color: rgba(247,247,247,1);
   flex-direction: row;
   height: 100%;
-  width: 100vw;
+  width: 100%;
 `;
 
 const EmojiSelector = styled.div`
@@ -1916,8 +1915,9 @@ const Input = styled.input`
   height: 60px;
   margin: 0px;
   padding: 15px;
-  border-radius: 0px 10px 10px 0px;
-  border: 0px;
+  border-radius: 10px 10px 0px 0px;
+  border: 0;
+  border-bottom: 1px solid rgba(235,235,235,1);
   line-height: 17px;
   background-color: transparent;
   font-family: Arial;
@@ -2362,7 +2362,7 @@ const SenderImageArea = styled.div`
   height: 28px;
   width: 28px;
   border-radius: 8px;
-  background-color: rgba(118,194,133,1);
+  background-color: rgba(237,171,99,1);
   flex-direction: column;
   display: flex;
 `;
@@ -2471,11 +2471,13 @@ const LeftBgStack = styled.div`
 
 const SelectedDirectChannel = styled.div`
   height: 100%;
-  width: 654px;
+  width: 100%;
   opacity: 1;
   flex-direction: column;
   display: flex;
   margin-top: 17px;
+  background-color: rgba(247,247,247,1);
+  padding: 20px 0px 20px 0px;
 `;
 
 const AssignedTo = styled.div`
@@ -2550,7 +2552,7 @@ const ActionList = styled.div`
   opacity: 1;
   flex-direction: column;
   display: flex;
-  margin-left: 220px;
+  margin-left: auto;
 `;
 
 const ResolvedSelector = styled.div`
@@ -2597,21 +2599,21 @@ const MessageList = styled.div`
   top: 0px;
   left: 24px;
   height: 100%;
-  width: 616px;
+  width: 95%;
   opacity: 1;
   flex-direction: column;
   display: flex;
-  overflow: "scroll";
+  overflow-y: "scroll";
+  background-color: rgba(247,247,247,1);
 `;
 
 const MessageAgent = styled.div`
-  height: 103px;
-  width: 411px;
   opacity: 1;
   flex-direction: column;
   display: flex;
-  margin-top: 53px;
-  margin-left: 205px;
+  margin-top: 6px;
+  text-align: right;
+  margin-left: auto;
 `;
 
 const UserName = styled.span`
@@ -2675,8 +2677,6 @@ const AgentTextAreaStackRow = styled.div`
 `;
 
 const Message = styled.div`
-  height: 103px;
-  width: 410px;
   opacity: 1;
   flex-direction: column;
   display: flex;
@@ -2760,18 +2760,18 @@ const UserMessageStackRow = styled.div`
 `;
 
 const MessageListStack = styled.div`
-  width: 654px;
-  height: 523px;
+  width: 100%;
+  min-height: 500px;
   margin-top: 19px;
   position: relative;
+  background-color: rgba(247,247,247,1);
 `;
 
 const MessageInput = styled.div`
   opacity: 1;
   flex-direction: column;
   display: flex;
-  margin-top: 18px;
-  margin-left: 24px;
+  margin: 0px 24px 18px 24px;
 `;
 
 const TextArea = styled.div`
@@ -2779,7 +2779,7 @@ const TextArea = styled.div`
   top: 0px;
   left: 1px;
   height: 80px;
-  width: 614px;
+  width: 100%;
   border-radius: 10px;
   background-color: rgba(255,255,255,1);
   flex-direction: column;
@@ -2811,7 +2811,7 @@ const EditToolbar = styled.div`
   opacity: 1;
   flex-direction: row;
   display: flex;
-  margin-left: 299px;
+  margin-left: auto;
 `;
 
 const AddMarkdown = styled.div`
@@ -2823,7 +2823,7 @@ const AddMarkdown = styled.div`
   margin-left: 23px;
 `;
 
-const Path7Stack = styled.div`
+const PathMarkdownStack = styled.div`
   width: 13px;
   height: 15px;
   position: relative;
@@ -2838,7 +2838,7 @@ const AddEmoji = styled.div`
   margin-left: 22px;
 `;
 
-const Path8Stack = styled.div`
+const PathEmojiStack = styled.div`
   width: 16px;
   height: 16px;
   position: relative;
@@ -2876,7 +2876,7 @@ const SendRow = styled.div`
 `;
 
 const TextAreaStack = styled.div`
-  width: 618px;
+  width: 100%;
   height: 91px;
   position: relative;
 `;

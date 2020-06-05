@@ -6,20 +6,16 @@ import './App.css';
 import 'emoji-mart/css/emoji-mart.css';
 import { Picker } from 'emoji-mart';
 
-let [myName, myInitials] = generateName();
-
-console.log("Hello "+myInitials);
+let myName = generateName();
  
 const pubnub = new PubNub({
   publishKey: 'pub-c-a4c4e92e-a605-4508-89f7-c37faf290e88',
   subscribeKey: 'sub-c-3035268e-a0fe-11ea-8e2f-c62edd1c297d',
-  uuid: myName
+  uuid: myName,
+  presenceTimeout: 20
 });
-const pChannel = 'supportChannel.';
-const channel = pChannel+myName.replace(/\s/g, '');
-
-
-console.log(channel);
+const channelPrefix = 'supportChannel.';
+const channel = channelPrefix+myName.replace(/\s/g, '');
   
 const SupportClient = () => {
   const pubnub = usePubNub();
@@ -28,33 +24,36 @@ const SupportClient = () => {
   const [show, toggleShow] = React.useState(false);
   const [emojiShow, toggleEmojiShow] = React.useState(false);
   const divRef = useRef(null);
- 
+  const messageRef = useRef([]);
+  messageRef.current = messages;
+
   const sendMessage = useCallback(
     async message => {
       if (input) {
         await pubnub.publish({
-                message: {sender:"client",name:myName,message:input},
-                channel:channel
-              });
+          message: {sender:"client",name:myName,message:input.replace(/<[^>]*>?/gm, '')},
+          channel:channel
+        });
         setInput('');
       }
     },
     [pubnub, setInput, input]
   );
 
-  useEffect(() => {
+  function startPubNub() {
     pubnub.addListener({
       message: messageEvent => {
-        setMessages([...messages, messageEvent.message] as any);
-        divRef.current.scrollIntoView({ behavior: 'smooth' });
+        if (messageEvent.channel === channel) {
+          setMessages([...messageRef.current, messageEvent.message] as any);
+          divRef.current.scrollIntoView({ behavior: 'smooth' });
+        }
       },
     });
     pubnub.subscribe({
-        channels: [channel, pChannel+"*"],
+        channels: [channel, channelPrefix+"*"],
         withPresence: true
     });
-
-  }, [messages, pubnub, divRef]);
+  }
 
   useEffect(() => {
     const listener = event => {
@@ -86,27 +85,6 @@ const SupportClient = () => {
                 <AssignedToNameGroup>
                   <AssignedToNameStack>
                     <AssignedToName>Phil</AssignedToName>
-                    <svg
-                      viewBox="-1.5 -1.5 16 16"
-                      style={{
-                        position: "absolute",
-                        height: 16,
-                        width: 16,
-                        top: 0,
-                        left: 16,
-                        backgroundColor: "transparent",
-                        borderColor: "transparent"
-                      }}
-                    >
-                      <path
-                        strokeWidth={3}
-                        fill="rgba(126,211,33,1)"
-                        stroke="rgba(78,111,199,1)"
-                        fillOpacity={1}
-                        strokeOpacity={1}
-                        d="M6.50 11.50 C9.26 11.50 11.50 9.26 11.50 6.50 C11.50 3.74 9.26 1.50 6.50 1.50 C3.74 1.50 1.50 3.74 1.50 6.50 C1.50 9.26 3.74 11.50 6.50 11.50 Z"
-                      ></path>
-                    </svg>
                   </AssignedToNameStack>
                   <AssignedToImageColumn>
                     <AssignedToImage
@@ -133,7 +111,7 @@ const SupportClient = () => {
                           ></AgentAvatarImg>
                         </AgentAvatar>
                         <AgentMessageAreaStack>
-                           {message.message}
+                           {message.message.replace(/<[^>]*>?/gm, '')}
                         </AgentMessageAreaStack>
                       </AgentAvatarRow>
                     </NewMessage>
@@ -144,7 +122,7 @@ const SupportClient = () => {
                       <ClientName>{myName} (You)</ClientName>
                       <AgentAvatarRow>
                         <ClientMessageAreaStack>
-                           {message.message}
+                           {message.message.replace(/<[^>]*>?/gm, '')}
                         </ClientMessageAreaStack>
                       </AgentAvatarRow>
                     </NewMessage>
@@ -519,7 +497,7 @@ const SupportClient = () => {
                     </User1>
                   </UserRow>
                 </Users>
-                <NewConversation onClick={() => {toggleShow(!show);setMessages([...messages, {sender:"agent",name:"agent",message:"You're connected to an agent. What can I help you with today?"}]);}}>
+                <NewConversation onClick={() => {toggleShow(!show);setMessages([...messages, {sender:"agent",name:"agent",message:"You're connected to an agent. What can I help you with today?"}]);startPubNub();}}>
                   <Bg>
                     <NewConversationLabel>New Conversation</NewConversationLabel>
                   </Bg>
@@ -621,7 +599,7 @@ function generateName(){
   var name2 = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"];
   var first = capFirst(name1[getRandomInt(1, name1.length)]);
   var last = capFirst(name2[getRandomInt(1, name2.length)]);
-  return [(first + ' ' + last), (first.charAt(0)+last.charAt(0))];
+  return (first + ' ' + last);
 }
 
 /* Styles */
@@ -629,12 +607,14 @@ function generateName(){
 const NewConversationsRow = styled.div`
   height: 609px;
   flex-direction: row;
-  alignItems: flex-end;
   display: flex;
   flex: 1 1 0%;
-  margin-right: 47px;
-  margin-left: 1040px;
-  margin-top: 81px;
+  position: absolute;
+  bottom 0;
+  right 0;
+  margin-right: 50px;
+  margin-bottom: 50px;
+  margin-top: auto;
 `;
 
 const UserAvatarImage1 = styled.div`
@@ -781,6 +761,18 @@ const EmojiSelector = styled.div`
   right: 150;
   bottom: 2;
 `;
+
+const Input = styled.input`
+  height: 17px;
+  width: 145px;
+  border-radius: 0px;
+  border: 0px;
+  line-height: 17px;
+  background-color: transparent;
+  font-family: Arial;
+  font-size: 10px;
+`;
+
 //* Styles */
 
 
@@ -789,13 +781,13 @@ const Container = styled.div`
   display: flex;
   background-color: rgba(247,247,247,1);
   flex-direction: row;
-  height: 100vh;
-  width: 100vw;
+  height: 100%;
+  width: 100%;
 `;
 
 const NewConversations = styled.div`
   height: 427px;
-  width: 280px;
+  width: 100%;
   opacity: 1;
   flex-direction: column;
   display: flex;
@@ -1194,16 +1186,7 @@ const InputRow = styled.div`
   margin-top: 4px;
 `;
 
-const Input = styled.input`
-  height: 17px;
-  width: 145px;
-  border-radius: 0px;
-  border: 0px;
-  line-height: 17px;
-  background-color: transparent;
-  font-family: Arial;
-  font-size: 10px;
-`;
+
 
 const Send = styled.div`
   height: 24px;
