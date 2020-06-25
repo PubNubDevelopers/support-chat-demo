@@ -44,7 +44,7 @@ const SupportDashboard = () => {
         }
         divRef.current.scrollIntoView({ behavior: 'smooth' });
       } else {
-        alert("You must first create and select a user to send messages.")
+        alert("Start a new conversation from the user view before sending messages.")
         setInput('');
       }
     },
