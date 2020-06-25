@@ -6,6 +6,10 @@ This project demonstrates how you could build a support chat (including dashboar
 
 Learn more infomation about the [Support Chat UI Kit](https://www.pubnub.com/chat-ui-kit/) from the [PubNub UI Kit](https://www.pubnub.com/chat-ui-kit/) page.
 
+<a href="https://www.pubnub.com/developers/demos/support-chat/">
+    <img alt="Support Chat Demo" src="https://raw.githubusercontent.com/PubNubDevelopers/support-chat-demo/master/screencapture-pubnub-developers-demos-support-chat.png" width=400/>
+</a>
+
 ## Features:
 
 - 1 to 1 style chat with automatic creation of new chats.
@@ -42,11 +46,11 @@ Learn more infomation about the [Support Chat UI Kit](https://www.pubnub.com/cha
 
 1. Click your new app to open its settings, then click its keyset.
 
-1. Enable the channel presence feature](https://support.pubnub.com/support/solutions/articles/14000043562-how-do-i-enable-the-channel-presence-feature-/) for your keyset.
+1. [Enable the channel presence feature](https://support.pubnub.com/support/solutions/articles/14000043562-how-do-i-enable-the-channel-presence-feature-/) for your keyset.
 
 ## Building and Running
 
-- Keep in mind that this demo is a work in progress. Some features may not be availible in this demo yet and you should always review the code before including it into your application. 
+- Keep in mind that this demo is a work in progress. Some features may not be available in this demo yet and you should always review the code before including it into your application. 
 
 1. You'll need to run the following commands from your terminal for both of the application views (dashboard and client).
 
