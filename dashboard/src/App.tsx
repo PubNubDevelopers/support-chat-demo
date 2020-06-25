@@ -72,7 +72,6 @@ const SupportDashboard = () => {
             }
           }
           setMessages(channelHistory);
-
           divRef.current.scrollIntoView({ behavior: 'smooth' });
         }
       );
