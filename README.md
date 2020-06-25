@@ -18,7 +18,7 @@ Learn more infomation about the [Support Chat UI Kit](https://www.pubnub.com/cha
 - [Channel Wildcards](https://www.pubnub.com/docs/platform/channels/channel-management).
 - Message history.
 
-### Features coming soon:
+### Coming soon:
 - Typing indicators
 - Read receipts
 - Dark theme.
