@@ -7,7 +7,7 @@ This project demonstrates how you could build a support chat (including dashboar
 Learn more infomation about the [Support Chat UI Kit](https://www.pubnub.com/chat-ui-kit/) from the [PubNub UI Kit](https://www.pubnub.com/chat-ui-kit/) page.
 
 <a href="https://www.pubnub.com/developers/demos/support-chat/">
-    <img alt="Support Chat Demo" src="https://raw.githubusercontent.com/PubNubDevelopers/support-chat-demo/master/screencapture-pubnub-developers-demos-support-chat.png" width=400/>
+    <img alt="Support Chat Demo" src="https://raw.githubusercontent.com/PubNubDevelopers/support-chat-demo/master/screencapture-pubnub-developers-demos-support-chat.png" width=800/>
 </a>
 
 ## Features:
