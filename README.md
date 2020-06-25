@@ -86,7 +86,7 @@ Learn more infomation about the [Support Chat UI Kit](https://www.pubnub.com/cha
     npm start
     ```
 
-    A web browser should automatically open for each view and you can explore your very own Support Chat app! Click "Start Conversation" in the client view 
+    A web browser should automatically open for each view and you can explore your very own Support Chat app! Click "Start Conversation" in the client view to create a new conversation between the dashboard view and client.
 
 
 ## Further Information
