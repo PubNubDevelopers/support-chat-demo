@@ -1,6 +1,6 @@
 # Support Chat Demo
 
-*Important Note: This is a proof of concept with only the essential features it should have (chat, presence, history). It’s intentionally simplified as much as possible to be a basic example of how you could build your own support chat while we build a more extensive version that can more reasonably be expanded on and reused. You should be careful reusing this code in your application: it's not following best practices. The ultimate goal is to create a series of chat components that can be reused to create a more consistent development experience and simplify the process for making more future demos. In the coming weeks we’ll be rebuilding this app completely. Stay tuned for more.
+*Important Note: **This is a proof of concept** with only the essential features it should have (chat, presence, history). It’s intentionally simplified as much as possible to be a basic example of how you could build your own support chat while we build a more extensive version that can more reasonably be expanded on and reused. You should be careful reusing this code in your application: it's not following best practices. The ultimate goal is to create a series of chat components that can be reused to create a more consistent development experience and simplify the process for making more future demos. In the coming weeks we’ll be rebuilding this app completely. Stay tuned for more.
 
 This project demonstrates how you could build a support chat (including dashboard and client view) using PubNub. 
 
