@@ -44,7 +44,7 @@ const SupportDashboard = () => {
         }
         divRef.current.scrollIntoView({ behavior: 'smooth' });
       } else {
-        alert("Start a new conversation from the user view before sending messages.")
+        alert("Start a new conversation from the customer view before sending messages.")
         setInput('');
       }
     },
