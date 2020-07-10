@@ -9,8 +9,8 @@ import { Picker } from 'emoji-mart';
 let myName = generateName();
  
 const pubnub = new PubNub({
-  publishKey: 'pub-c-a4c4e92e-a605-4508-89f7-c37faf290e88',
-  subscribeKey: 'sub-c-3035268e-a0fe-11ea-8e2f-c62edd1c297d',
+  publishKey: 'YOUR_PUBNUB_PUBLISH_KEY',
+  subscribeKey: 'YOUR_PUBNUB_SUBSCRIBE_KEY',
   uuid: myName,
   presenceTimeout: 20
 });
