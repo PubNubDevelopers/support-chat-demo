@@ -1,8 +1,8 @@
 # Support Chat Demo
 
-*Important Note: **This is a proof of concept** with only the essential features it should have (chat, presence, history). It’s intentionally simplified as much as possible to be a basic example of how you could build your own support chat while we build a more extensive version that can more reasonably be expanded on and reused. You should be careful reusing this code in your application: it's not following best practices. The ultimate goal is to create a series of chat components that can be reused to create a more consistent development experience and simplify the process for making more future demos. In the coming weeks we’ll be rebuilding this app completely. Stay tuned for more.
+*Important Note: This project is a simplified demo of a support chat app and is intended as a demonstration only. **[PubNub Component Support Chat App](https://github.com/PubNubDevelopers/chat-component-app-live-support) is a better example of how you should build support style chat.** 
 
-This project demonstrates how you could build a support chat (including dashboard and client view) using PubNub. 
+This project is a simplified demo of a support chat app (including dashboard and client view) using PubNub. 
 
 [Try this demo](https://www.pubnub.com/developers/demos/support-chat/) without installing anything.
 
@@ -19,11 +19,6 @@ Learn more infomation about the [Support Chat UI Kit](https://www.pubnub.com/cha
 - Emoji selector.
 - [Channel Wildcards](https://www.pubnub.com/docs/platform/channels/channel-management).
 - Message history.
-
-### Coming soon:
-- Typing indicators
-- Read receipts
-- Dark theme.
 
 ## Requirements
 
