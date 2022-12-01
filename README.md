@@ -1,6 +1,8 @@
-# Support Chat Demo
+## Please note that this project is no longer actively maintained or accepting Pull Requests.  Please use the [React Group Chat app](https://github.com/pubnub/react-chat-components/tree/master/samples/react/group-chat) instead.
 
-*Important Note: This project is a simplified demo of a support chat app and is intended as a demonstration only. **[PubNub Component Support Chat App](https://github.com/PubNubDevelopers/chat-component-app-live-support) is a better example of how you should build support style chat.** 
+-------------------------------
+
+# Support Chat Demo
 
 This project is a simplified demo of a support chat app (including dashboard and client view) using PubNub. 
 
